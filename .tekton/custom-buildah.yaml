@@ -1,57 +1,85 @@
-apiVersion: tekton.dev/v1beta1
+apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: custom-buildah
-  labels:
-    app.kubernetes.io/version: "0.1"
   annotations:
-    tekton.dev/pipelines.minVersion: "0.41.0"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"tekton.dev/v1beta1","kind":"Task","metadata":{"annotations":{"tekton.dev/categories":"Image Build","tekton.dev/pipelines.minVersion":"0.41.0","tekton.dev/tags":"build, buildah"},"labels":{"app.kubernetes.io/version":"0.1"},"name":"custom-buildah","namespace":"sn-labs-taliakopik"},"spec":{"params":[{"description":"Name of the output image (e.g., image-registry.svc:5000/project/app:latest)","name":"IMAGE"},{"default":"true","description":"Verify the TLS on the registry endpoint (true/false)","name":"TLSVERIFY"},{"default":".","description":"The path to the build context directory, relative to the workspace root.","name":"CONTEXT"},{"default":"quay.io/buildah/stable:latest","description":"The Buildah image to use for the build process.","name":"BUILDER_IMAGE"},{"default":"./Dockerfile","description":"The path to the Dockerfile to use.","name":"DOCKERFILE"},{"default":"vfs","description":"Storage driver to use for Buildah (e.g., vfs to bypass permission errors in unprivileged environments).","name":"STORAGE_DRIVER"},{"default":"chroot","description":"Isolation mechanism to use (e.g., 'chroot' to avoid dependency on unsupported user namespaces).","name":"ISOLATION"}],"steps":[{"env":[{"name":"HOME","value":"/tmp"}],"image":"$(params.BUILDER_IMAGE)","name":"build-and-push","script":"#!/usr/bin/env bash\nset -euo pipefail\n\nCONTEXT_DIR=\"$(workspaces.source.path)/$(params.CONTEXT)\"\n\n# 1. Build the image\necho \"Starting buildah build...\"\nbuildah bud \\\n  --storage-driver=$(params.STORAGE_DRIVER) \\\n  --tls-verify=$(params.TLSVERIFY) \\\n  --format=docker \\\n  --file \"$(params.DOCKERFILE)\" \\\n  --isolation=$(params.ISOLATION) \\\n  -t \"$(params.IMAGE)\" \\\n  \"$(params.CONTEXT)\"\n\n# 2. Push the built image to the registry\necho \"Pushing image to registry: $(params.IMAGE)\"\nbuildah push \\\n  --storage-driver=$(params.STORAGE_DRIVER) \\\n  --tls-verify=$(params.TLSVERIFY) \\\n  \"$(params.IMAGE)\" \\\n  \"docker://$(params.IMAGE)\"\n","securityContext":{"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"workingDir":"$(workspaces.source.path)"}],"workspaces":[{"description":"The workspace containing the application source code.","name":"source"}]}}
     tekton.dev/categories: Image Build
-    tekton.dev/tags: build, buildah
+    tekton.dev/pipelines.minVersion: 0.41.0
+    tekton.dev/tags: 'build, buildah'
+  resourceVersion: '2509423106'
+  name: custom-buildah
+  uid: 6ca83537-7413-4d29-91b9-3de62ab9c18c
+  creationTimestamp: '2025-11-29T13:26:26Z'
+  generation: 10
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:kubectl.kubernetes.io/last-applied-configuration': {}
+            'f:tekton.dev/categories': {}
+            'f:tekton.dev/pipelines.minVersion': {}
+            'f:tekton.dev/tags': {}
+          'f:labels':
+            .: {}
+            'f:app.kubernetes.io/version': {}
+        'f:spec':
+          .: {}
+          'f:workspaces': {}
+      manager: kubectl-client-side-apply
+      operation: Update
+      time: '2025-11-29T13:40:55Z'
+    - apiVersion: tekton.dev/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          'f:params': {}
+          'f:steps': {}
+      manager: Mozilla
+      operation: Update
+      time: '2025-11-29T17:58:50Z'
+  namespace: sn-labs-taliakopik
+  labels:
+    app.kubernetes.io/version: '0.1'
 spec:
-  # This workspace is where the source code (cloned by git-clone) will be mounted.
-  workspaces:
-    - name: source
-      description: The workspace containing the application source code.
   params:
-    - name: IMAGE
-      description: Name of the output image (e.g., image-registry.svc:5000/project/app:latest)
-    - name: TLSVERIFY
+    - description: 'Name of the output image (e.g., image-registry.svc:5000/project/app:latest)'
+      name: IMAGE
+      type: string
+    - default: 'true'
       description: Verify the TLS on the registry endpoint (true/false)
-      default: "true"
-    - name: CONTEXT
-      description: The path to the build context directory, relative to the workspace root.
-      default: "."
-    - name: BUILDER_IMAGE
+      name: TLSVERIFY
+      type: string
+    - default: .
+      description: 'The path to the build context directory, relative to the workspace root.'
+      name: CONTEXT
+      type: string
+    - default: 'quay.io/buildah/stable:latest'
       description: The Buildah image to use for the build process.
-      # FIX: Changed the default image from Red Hat Registry to a publicly available, stable Buildah image
-      default: 'quay.io/buildah/stable:latest'
-    - name: DOCKERFILE
+      name: BUILDER_IMAGE
+      type: string
+    - default: Dockerfile
       description: The path to the Dockerfile to use.
-      default: "Dockerfile"
-    - name: STORAGE_DRIVER
-      description: Storage driver to use for Buildah (e.g., vfs to bypass permission errors in unprivileged environments).
-      default: "vfs"
-
+      name: DOCKERFILE
+      type: string
+    - default: vfs
+      description: 'Storage driver to use for Buildah (e.g., vfs to bypass permission errors in unprivileged environments).'
+      name: STORAGE_DRIVER
+      type: string
+    - default: chroot
+      description: 'Isolation mechanism to use (e.g., ''chroot'' to avoid dependency on unsupported user namespaces).'
+      name: ISOLATION
+      type: string
   steps:
-    - name: build-and-push
-      image: "$(params.BUILDER_IMAGE)"
-      workingDir: "$(workspaces.source.path)"
-
-      # 1. Custom security context override
-      securityContext:
-        runAsNonRoot: true
-        capabilities:
-          drop: ["ALL"]
-        seccompProfile:
-          type: RuntimeDefault
-
-      # 2. FIX: Set HOME to /tmp to prevent "permission denied" errors
-      # when Buildah tries to access config files in the non-writable root directory.
+    - computeResources: {}
       env:
         - name: HOME
           value: /tmp
-
+      image: $(params.BUILDER_IMAGE)
+      name: build-and-push
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
@@ -61,17 +89,31 @@ spec:
         # 1. Build the image
         echo "Starting buildah build..."
         buildah bud \
+          --rootless \
           --storage-driver=$(params.STORAGE_DRIVER) \
           --tls-verify=$(params.TLSVERIFY) \
           --format=docker \
           --file "$(params.DOCKERFILE)" \
+          --isolation=$(params.ISOLATION) \
           -t "$(params.IMAGE)" \
           "$(params.CONTEXT)"
 
         # 2. Push the built image to the registry
         echo "Pushing image to registry: $(params.IMAGE)"
         buildah push \
+          --rootless \
           --storage-driver=$(params.STORAGE_DRIVER) \
           --tls-verify=$(params.TLSVERIFY) \
           "$(params.IMAGE)" \
           "docker://$(params.IMAGE)"
+      securityContext:
+        capabilities:
+          drop:
+            - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      workingDir: $(workspaces.source.path)
+  workspaces:
+    - description: The workspace containing the application source code.
+      name: source
