@@ -52,6 +52,8 @@ spec:
       image: python:3.9-slim
       workingDir: $(workspaces.source.path)
       script: |
+        export HOME=/tmp/python
+        export PATH=$PATH:/tmp/python/.local/bin
         #!/bin/bash
         set -e
         python -m pip install --upgrade pip wheel
