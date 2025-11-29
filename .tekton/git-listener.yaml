@@ -1,0 +1,17 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: git-listener
+  namespace: sn-labs-taliakopik
+spec:
+  # CHANGED: Using 'default' ServiceAccount, which usually has the permissions 
+  # required to create PipelineRuns and Routes in the namespace.
+  serviceAccountName: default 
+  triggers:
+    - name: github-webhook-trigger
+      # Defines which TriggerBinding to use to extract data from the webhook payload.
+      bindings:
+        - ref: git-binding
+      # Defines which TriggerTemplate to use to construct the PipelineRun.
+      template:
+        ref: git-template
