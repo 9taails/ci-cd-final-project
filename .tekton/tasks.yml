@@ -13,7 +13,11 @@ spec:
           value: $(workspaces.source.path)
       workingDir: $(workspaces.source.path)
       securityContext:
-        runAsNonRoot: false
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: "RuntimeDefault"
+        runAsNonRoot: true
       script: |
         #!/usr/bin/env sh
         set -eu
@@ -50,6 +54,12 @@ spec:
       script: |
         #!/bin/bash
         set -e
-        python -m pip install --upgrade pip wheel
-        pip install -r requirements.txt
+        python3 -m pip install --upgrade pip wheel
+        pip3 install -r requirements.txt
         nosetests $(params.args)
+      securityContext:
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: "RuntimeDefault"
+        runAsNonRoot: true
