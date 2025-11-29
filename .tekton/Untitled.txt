@@ -1,0 +1,1 @@
+oc set image deployment/app-deployment app=image-registry.openshift-image-registry.svc:5000/sn-labs-taliakopik/app:latest --local=false --namespace sn-labs-taliakopik
