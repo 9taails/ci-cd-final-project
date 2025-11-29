@@ -84,9 +84,17 @@ spec:
     - name: run-oc-script
       image: quay.io/openshift/origin-cli:latest # Reliable image with the 'oc' command
       script: |
+        export HOME=/tmp/python
+        export PATH=$PATH:/tmp/python/.local/bin
         #!/usr/bin/env bash
         set -e # Exit immediately if a command exits with a non-zero status
         echo "Running OpenShift script:"
         
         # The script parameter holds the command block
-        eval "${script}"
+        eval "$(params.script)"
+      securityContext:
+        runAsNonRoot: true
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: RuntimeDefault

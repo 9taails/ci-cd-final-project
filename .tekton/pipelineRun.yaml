@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: build-deploy-sa-fix-
+spec:
+  pipelineRef:
+    name: cd-pipeline
+  # --- FIX: Explicitly set the ServiceAccount to 'default' ---
+  # The 'pipeline' SA was failing (Forbidden). The 'default' SA often
+  # has the necessary 'edit' role to run 'oc start-build'.
+  taskRunTemplate:
+    serviceAccountName: default
+  workspaces:
+    - name: output
+      persistentVolumeClaim:
+        claimName: oc-lab-pvc
