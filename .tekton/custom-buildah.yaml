@@ -1,0 +1,77 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-buildah
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.41.0"
+    tekton.dev/categories: Image Build
+    tekton.dev/tags: build, buildah
+spec:
+  # This workspace is where the source code (cloned by git-clone) will be mounted.
+  workspaces:
+    - name: source
+      description: The workspace containing the application source code.
+  params:
+    - name: IMAGE
+      description: Name of the output image (e.g., image-registry.svc:5000/project/app:latest)
+    - name: TLSVERIFY
+      description: Verify the TLS on the registry endpoint (true/false)
+      default: "true"
+    - name: CONTEXT
+      description: The path to the build context directory, relative to the workspace root.
+      default: "."
+    - name: BUILDER_IMAGE
+      description: The Buildah image to use for the build process.
+      # FIX: Changed the default image from Red Hat Registry to a publicly available, stable Buildah image
+      default: 'quay.io/buildah/stable:latest'
+    - name: DOCKERFILE
+      description: The path to the Dockerfile to use.
+      default: "Dockerfile"
+    - name: STORAGE_DRIVER
+      description: Storage driver to use for Buildah (e.g., vfs to bypass permission errors in unprivileged environments).
+      default: "vfs"
+
+  steps:
+    - name: build-and-push
+      image: "$(params.BUILDER_IMAGE)"
+      workingDir: "$(workspaces.source.path)"
+
+      # 1. Custom security context override
+      securityContext:
+        runAsNonRoot: true
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: RuntimeDefault
+
+      # 2. FIX: Set HOME to /tmp to prevent "permission denied" errors
+      # when Buildah tries to access config files in the non-writable root directory.
+      env:
+        - name: HOME
+          value: /tmp
+
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        CONTEXT_DIR="$(workspaces.source.path)/$(params.CONTEXT)"
+
+        # 1. Build the image
+        echo "Starting buildah build..."
+        buildah bud \
+          --storage-driver=$(params.STORAGE_DRIVER) \
+          --tls-verify=$(params.TLSVERIFY) \
+          --format=docker \
+          --file "$(params.DOCKERFILE)" \
+          -t "$(params.IMAGE)" \
+          "$(params.CONTEXT)"
+
+        # 2. Push the built image to the registry
+        echo "Pushing image to registry: $(params.IMAGE)"
+        buildah push \
+          --storage-driver=$(params.STORAGE_DRIVER) \
+          --tls-verify=$(params.TLSVERIFY) \
+          "$(params.IMAGE)" \
+          "docker://$(params.IMAGE)"
