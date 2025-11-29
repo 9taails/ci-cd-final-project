@@ -89,7 +89,6 @@ spec:
         # 1. Build the image
         echo "Starting buildah build..."
         buildah bud \
-          --rootless \
           --storage-driver=$(params.STORAGE_DRIVER) \
           --tls-verify=$(params.TLSVERIFY) \
           --format=docker \
@@ -101,7 +100,6 @@ spec:
         # 2. Push the built image to the registry
         echo "Pushing image to registry: $(params.IMAGE)"
         buildah push \
-          --rootless \
           --storage-driver=$(params.STORAGE_DRIVER) \
           --tls-verify=$(params.TLSVERIFY) \
           "$(params.IMAGE)" \
