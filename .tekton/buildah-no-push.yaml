@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildah-no-push
+  namespace: sn-labs-taliakopik
+spec:
+  params:
+    - name: IMAGE
+      type: string
+    - default: Dockerfile
+      name: DOCKERFILE
+      type: string
+  steps:
+    - computeResources: {}
+      env:
+        - name: HOME
+          value: /tmp/home
+      image: 'quay.io/buildah/stable:latest'
+      name: build
+      script: |
+        mkdir -p /tmp/home
+        buildah bud -f $(params.DOCKERFILE) -t $(params.IMAGE) $(workspaces.source.path)
+      securityContext:
+        capabilities:
+          drop:
+            - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+  workspaces:
+    - name: source
