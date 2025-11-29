@@ -1,0 +1,40 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: app-build
+  namespace: sn-labs-taliakopik
+  annotations:
+    openshift.io/display-name: "App Docker Build"
+spec:
+  # 1. Source: Where the build pulls the source code from
+  source:
+    type: Git
+    git:
+      uri: https://github.com/9taails/ci-cd-final-project.git
+      ref: 'main'
+    contextDir: /
+    
+  # 2. Strategy: Specifies that the build uses a Dockerfile
+  strategy:
+    type: Docker
+    dockerStrategy:
+      # Optional: specify the path to your Dockerfile if it's not named 'Dockerfile'
+      dockerfilePath: Dockerfile
+      
+  # 3. Output: Where the finished image is pushed
+  output:
+    to:
+      kind: ImageStreamTag
+      # This tag points to the ImageStream defined in the other file
+      name: 'app:latest'
+
+  # 4. Triggers: How the build is initiated
+  triggers:
+    - type: ImageChange # Triggers a new build if the base image (if defined in Dockerfile) changes
+    - type: ConfigChange # Triggers an initial build when the BuildConfig is created
+    - type: GitHub       # Add this if you want to set up a GitHub webhook trigger later
+      github:
+        secretReference:
+          # Create a secret named 'github-webhook-secret' containing a 'WebHookSecretKey'
+          # OpenShift will generate the hook URL after applying this.
+          name: github-webhook-secret

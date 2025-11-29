@@ -1,0 +1,8 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  # This ImageStream will track the built image (e.g., 'my-app:latest')
+  name: app
+  annotations:
+    # Optional: A brief description of what this image stream is for
+    openshift.io/display-name: "App Image Stream"

@@ -1,0 +1,11 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: git-binding
+  namespace: sn-labs-taliakopik
+spec:
+  params:
+    - name: repository
+      value: "$(body.repository.url)" # Adjust based on the actual event payload
+    - name: branch
+      value: "$(body.ref)"

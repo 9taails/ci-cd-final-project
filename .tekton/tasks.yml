@@ -63,3 +63,28 @@ spec:
         seccompProfile:
           type: "RuntimeDefault"
         runAsNonRoot: true
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: openshift-cli-runner
+  labels:
+    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/part-of: "ci-cd-pipeline"
+spec:
+  description: >
+    Executes arbitrary OpenShift CLI ('oc') commands in a container.
+  params:
+    - name: script
+      type: string
+      description: The script containing the 'oc' commands to execute.
+  steps:
+    - name: run-oc-script
+      image: quay.io/openshift/origin-cli:latest # Reliable image with the 'oc' command
+      script: |
+        #!/usr/bin/env bash
+        set -e # Exit immediately if a command exits with a non-zero status
+        echo "Running OpenShift script:"
+        
+        # The script parameter holds the command block
+        eval "${script}"
